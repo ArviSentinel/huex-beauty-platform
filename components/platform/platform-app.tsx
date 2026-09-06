@@ -243,7 +243,7 @@ const sectionMeta: Record<
   },
   campaigns: {
     title: "Kampagnenmanager",
-    description: "Zielgruppen, Kanäle und Resultate deiner Aktionen steuern.",
+    description: "Gewinne Buchungen mit gezielten Aktionen für die richtigen Kunden.",
     dialog: "growth-campaign",
     action: "Neue Kampagne",
   },
@@ -632,7 +632,11 @@ export function PlatformApp({
               <ReviewManager workspace={workspace} mutate={mutate} saving={saving} />
             )}
             {section === "campaigns" && (
-              <CampaignManager workspace={workspace} mutate={mutate} />
+              <CampaignManager
+                workspace={workspace}
+                mutate={mutate}
+                onCreate={() => setDialog("growth-campaign")}
+              />
             )}
             {section === "marketing" && (
               <Marketing
@@ -1525,28 +1529,76 @@ function ReviewManager({
 function CampaignManager({
   workspace,
   mutate,
+  onCreate,
 }: {
   workspace: WorkspaceData;
   mutate: (action: ApiAction, success?: string) => Promise<boolean>;
+  onCreate: () => void;
 }) {
   const labels = { draft: "Entwurf", active: "Aktiv", completed: "Abgeschlossen" } as const;
+  const reached = workspace.growthCampaigns.reduce((sum, campaign) => sum + campaign.sent, 0);
+  const bookings = workspace.growthCampaigns.reduce((sum, campaign) => sum + campaign.bookings, 0);
+  const revenue = workspace.growthCampaigns.reduce((sum, campaign) => sum + campaign.revenueCents, 0);
+
   return (
     <div className="space-y-6">
-      <SimulationNotice>
-        Kanalversand und Reaktionen werden simuliert. Planung, Status und Kennzahlen sind bedienbar und gespeichert.
-      </SimulationNotice>
+      <section className="relative overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#18213a_0%,#3c3a78_52%,#9a659f_100%)] p-6 text-white shadow-[0_24px_70px_rgba(42,39,91,0.22)] sm:p-8">
+        <div className="absolute -right-20 -top-24 size-80 rounded-full bg-white/10 blur-3xl" />
+        <div className="absolute -bottom-24 left-1/3 size-64 rounded-full bg-[#a9c8ff]/15 blur-3xl" />
+        <div className="relative grid gap-8 xl:grid-cols-[1.25fr_0.75fr] xl:items-end">
+          <div>
+            <Badge className="border border-white/15 bg-white/10 text-white hover:bg-white/10"><Rocket className="mr-1.5 size-3.5" /> Dein Kampagnen Studio</Badge>
+            <h2 className="mt-5 max-w-3xl text-3xl font-semibold leading-tight tracking-[-0.04em] sm:text-4xl">Aus freien Kapazitäten wird planbarer Umsatz.</h2>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-white/75">Erreiche die passenden Kunden mit einer Aktion, die zu deinem aktuellen Ziel passt – verständlich geplant und messbar ausgewertet.</p>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Button onClick={onCreate} className="h-12 rounded-full bg-white px-6 font-semibold text-[#33336a] shadow-lg hover:bg-white/90"><Target className="size-4" /> Kampagne starten</Button>
+              <span className="flex items-center gap-2 px-2 text-sm text-white/65"><Check className="size-4" /> Ohne Marketingwissen</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2 rounded-2xl border border-white/10 bg-white/[0.08] p-3 backdrop-blur-xl xl:grid-cols-1">
+            <div className="rounded-xl bg-white/[0.08] p-3"><p className="text-xs text-white/55">Erreicht</p><p className="mt-1 text-xl font-semibold">{reached}</p></div>
+            <div className="rounded-xl bg-white/[0.08] p-3"><p className="text-xs text-white/55">Buchungen</p><p className="mt-1 text-xl font-semibold">{bookings}</p></div>
+            <div className="rounded-xl bg-white/[0.08] p-3"><p className="text-xs text-white/55">Umsatz</p><p className="mt-1 text-xl font-semibold">{euro(revenue)}</p></div>
+          </div>
+        </div>
+      </section>
+
+      <Panel className="p-6 sm:p-7">
+        <div><p className="text-sm font-semibold text-[#6b62a6]">Was möchtest du erreichen?</p><h2 className="mt-1 text-xl font-semibold tracking-[-0.02em] text-[#2c2230]">Wähle dein Ziel – HUEX führt dich zum Ergebnis.</h2></div>
+        <div className="mt-6 grid gap-3 md:grid-cols-3">
+          {[
+            { icon: Zap, title: "Freie Termine füllen", copy: "Sprich kurzfristig passende Kunden an und reduziere Lücken im Kalender.", tone: "bg-amber-50 text-amber-700" },
+            { icon: RefreshCcw, title: "Kunden zurückgewinnen", copy: "Erinnere ehemalige Stammkunden mit einem persönlichen Anlass an dich.", tone: "bg-rose-50 text-rose-700" },
+            { icon: Sparkles, title: "Neue Leistung bekannt machen", copy: "Stelle dein neues Angebot gezielt den Kunden vor, zu denen es passt.", tone: "bg-violet-50 text-violet-700" },
+          ].map((goal) => (
+            <button key={goal.title} type="button" onClick={onCreate} className="group rounded-2xl border border-[rgba(79,52,81,0.08)] bg-[#fcfbfd] p-5 text-left transition hover:-translate-y-0.5 hover:border-[#6b62a6]/25 hover:shadow-[0_14px_35px_rgba(48,45,102,0.08)]">
+              <span className={`grid size-10 place-items-center rounded-xl ${goal.tone}`}><goal.icon className="size-5" /></span>
+              <h3 className="mt-5 font-semibold text-[#2c2230]">{goal.title}</h3><p className="mt-2 text-sm leading-6 text-slate-500">{goal.copy}</p>
+              <span className="mt-4 flex items-center gap-1 text-sm font-semibold text-[#6b62a6]">Auswählen <ChevronRight className="size-4 transition group-hover:translate-x-0.5" /></span>
+            </button>
+          ))}
+        </div>
+      </Panel>
+
+      <div className="flex items-end justify-between gap-4"><div><p className="text-sm font-semibold text-[#6b62a6]">Deine Aktionen</p><h2 className="mt-1 text-xl font-semibold text-[#2c2230]">Kampagnenübersicht</h2></div><Button variant="outline" onClick={onCreate} className="rounded-full border-[rgba(79,52,81,0.12)] bg-white"><Plus className="size-4" /> Neue Kampagne</Button></div>
       <div className="grid gap-5 xl:grid-cols-2">
         {workspace.growthCampaigns.map((campaign) => (
-          <Panel key={campaign.id} className="p-6">
+          <Panel key={campaign.id} className="overflow-hidden p-0">
+            <div className="border-b border-[rgba(79,52,81,0.07)] bg-[linear-gradient(120deg,#fbfaff,#f7f1f8)] p-6">
             <div className="flex items-start justify-between gap-4">
               <div><div className="flex flex-wrap gap-2"><Badge variant="outline" className="border-[rgba(79,52,81,0.1)]">{campaign.channel}</Badge><Badge className="bg-[#f4eaf6] text-[#85528d] hover:bg-[#f4eaf6]">{campaign.type === "gap_fill" ? "Lückenfüller" : campaign.type === "winback" ? "Rückgewinnung" : campaign.type === "new_service" ? "Neue Leistung" : "Saisonal"}</Badge></div><h2 className="mt-4 text-lg font-semibold text-[#2c2230]">{campaign.name}</h2><p className="mt-2 text-sm text-slate-500">{campaign.audience}</p></div>
               <NativeSelect value={campaign.status} onChange={(event) => void mutate({ type: "update_growth_campaign", id: campaign.id, status: event.target.value }, "Kampagnenstatus aktualisiert.")} className="h-9 min-w-32 rounded-xl border-[rgba(79,52,81,0.1)]"><NativeSelectOption value="draft">Entwurf</NativeSelectOption><NativeSelectOption value="active">Aktiv</NativeSelectOption><NativeSelectOption value="completed">Abgeschlossen</NativeSelectOption></NativeSelect>
             </div>
-            <div className="mt-6 grid grid-cols-3 gap-3"><div className="rounded-xl bg-[#fbf7fa] p-3"><p className="text-xs text-slate-400">Erreicht</p><p className="mt-1 font-semibold text-[#2c2230]">{campaign.sent}</p></div><div className="rounded-xl bg-[#fbf7fa] p-3"><p className="text-xs text-slate-400">Buchungen</p><p className="mt-1 font-semibold text-[#2c2230]">{campaign.bookings}</p></div><div className="rounded-xl bg-[#fbf7fa] p-3"><p className="text-xs text-slate-400">Umsatz</p><p className="mt-1 font-semibold text-[#2c2230]">{euro(campaign.revenueCents)}</p></div></div>
-            <p className="mt-4 text-xs text-slate-400">Status: {labels[campaign.status]}</p>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-3 gap-3"><div className="rounded-xl bg-[#f8f7fb] p-3"><p className="text-xs text-slate-400">Erreicht</p><p className="mt-1 font-semibold text-[#2c2230]">{campaign.sent}</p></div><div className="rounded-xl bg-[#f8f7fb] p-3"><p className="text-xs text-slate-400">Buchungen</p><p className="mt-1 font-semibold text-[#2c2230]">{campaign.bookings}</p></div><div className="rounded-xl bg-[#f8f7fb] p-3"><p className="text-xs text-slate-400">Umsatz</p><p className="mt-1 font-semibold text-[#2c2230]">{euro(campaign.revenueCents)}</p></div></div>
+              <div className="mt-5"><div className="flex justify-between text-xs text-slate-400"><span>Reaktion auf die Kampagne</span><span>{campaign.sent ? Math.round((campaign.bookings / campaign.sent) * 100) : 0}% buchen</span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-[linear-gradient(90deg,#6660a7,#b875a9)]" style={{ width: `${Math.min(100, campaign.sent ? (campaign.bookings / campaign.sent) * 100 : 0)}%` }} /></div></div>
+              <p className="mt-4 text-xs text-slate-400">Status: {labels[campaign.status]} · Ergebnisse simuliert</p>
+            </div>
           </Panel>
         ))}
       </div>
+      <SimulationNotice>Kanalversand, Reaktionen und Kennzahlen werden in dieser Demo simuliert. Planung und Status kannst du vollständig testen.</SimulationNotice>
     </div>
   );
 }
@@ -2079,7 +2131,7 @@ function ActionDialog({
     service: ["Neue Leistung", "Preis, Dauer und Onlinebuchung werden sofort berücksichtigt."],
     location: ["Standort hinzufügen", "Jeder Standort erhält sein eigenes Zeitraster."],
     marketing: ["Deinen Social-Post erstellen", "Vier einfache Angaben – danach erhältst du sofort deinen persönlichen Entwurf."],
-    "growth-campaign": ["Neue Wachstumskampagne", "Zielgruppe, Kanal und Status bleiben in deinem Demo-Betrieb gespeichert."],
+    "growth-campaign": ["Deine neue Kampagne", "Wähle Ziel, Zielgruppe und Kanal – HUEX baut daraus eine klare Aktion."],
   };
 
   return (
@@ -2194,17 +2246,15 @@ function ActionDialog({
             )}
             {type === "growth-campaign" && (
               <>
-                <Field label="Kampagnenname" name="name" placeholder="z. B. Herbst Glow Days" required />
-                <SelectField label="Kampagnentyp" name="campaignType">
-                  <option value="seasonal">Saisonale Aktion</option>
-                  <option value="new_service">Neue Leistung bewerben</option>
-                </SelectField>
-                <SelectField label="Kanal" name="channel">
-                  <option value="E-Mail">E-Mail</option>
-                  <option value="WhatsApp">WhatsApp</option>
-                  <option value="Instagram">Instagram</option>
-                </SelectField>
-                <Field label="Zielgruppe" name="audience" placeholder="z. B. Kunden mit 3+ Besuchen" required />
+                <div className="grid grid-cols-3 gap-2 pb-1">{["Ziel", "Kunden", "Kanal"].map((label, index) => <div key={label} className="rounded-xl bg-[#f4f3fb] px-2 py-3 text-center"><span className="block text-xs font-semibold text-[#6b62a6]">0{index + 1}</span><span className="mt-1 block text-xs text-[#4c4966]">{label}</span></div>)}</div>
+                <div className="rounded-2xl border border-[#6b62a6]/12 bg-[#faf9fd] p-4">
+                  <p className="text-sm font-semibold text-[#2c2230]">Was soll diese Kampagne erreichen?</p><p className="mt-1 text-xs leading-5 text-slate-500">Wähle den Anlass. Du kannst Status und Ergebnisse anschließend in der Übersicht testen.</p>
+                  <div className="mt-4"><SelectField label="Kampagnenziel" name="campaignType"><option value="seasonal">Saisonale Aktion bewerben</option><option value="new_service">Neue Leistung bekannt machen</option></SelectField></div>
+                  <div className="mt-4"><Field label="Name deiner Aktion" name="name" placeholder="z. B. Herbst Glow Days" required /></div>
+                </div>
+                <Field label="Welche Kunden möchtest du erreichen?" name="audience" placeholder="z. B. Stammkunden mit mindestens 3 Besuchen" required />
+                <SelectField label="Wie möchtest du sie erreichen?" name="channel"><option value="E-Mail">E-Mail</option><option value="WhatsApp">WhatsApp</option><option value="Instagram">Instagram</option></SelectField>
+                <div className="flex items-start gap-3 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800"><Check className="mt-0.5 size-4 shrink-0" /><span>Die Kampagne wird zuerst als Entwurf angelegt. Du entscheidest danach, wann sie aktiv wird.</span></div>
               </>
             )}
             <Button
@@ -2217,7 +2267,7 @@ function ActionDialog({
                 : type === "marketing"
                   ? "Meinen Post erstellen lassen"
                   : type === "growth-campaign"
-                    ? "Kampagne anlegen"
+                    ? "Meine Kampagne vorbereiten"
                   : type === "widget-appointment"
                     ? "Termin anfragen"
                     : "Speichern"}
