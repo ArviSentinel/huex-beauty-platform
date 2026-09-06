@@ -249,7 +249,7 @@ const sectionMeta: Record<
   },
   marketing: {
     title: "KI & Social Media",
-    description: "Erstelle und plane Inhalte im sicheren Demo-Modus.",
+    description: "Verwandle Ideen und freie Termine in Inhalte, die Kunden erreichen.",
     dialog: "marketing",
     action: "Inhalt erstellen",
   },
@@ -635,7 +635,11 @@ export function PlatformApp({
               <CampaignManager workspace={workspace} mutate={mutate} />
             )}
             {section === "marketing" && (
-              <Marketing workspace={workspace} mutate={mutate} />
+              <Marketing
+                workspace={workspace}
+                mutate={mutate}
+                onCreate={() => setDialog("marketing")}
+              />
             )}
             {section === "rewards" && (
               <Rewards workspace={workspace} mutate={mutate} />
@@ -1550,59 +1554,116 @@ function CampaignManager({
 function Marketing({
   workspace,
   mutate,
+  onCreate,
 }: {
   workspace: WorkspaceData;
   mutate: (action: ApiAction, success?: string) => Promise<boolean>;
+  onCreate: () => void;
 }) {
+  const planned = workspace.marketingPosts.filter((post) => post.status === "scheduled").length;
+  const published = workspace.marketingPosts.filter((post) => post.status === "published").length;
+  const statusLabel = { draft: "Entwurf", scheduled: "Geplant", published: "Veröffentlicht" } as const;
+
   return (
-    <div className="space-y-5">
-      <div className="rounded-2xl border border-[#9a659f]/15 bg-[#f4eaf6]/80 px-5 py-4 text-sm text-[#75457e] shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
-        <strong>Interaktive Simulation:</strong> Entwürfe und Status werden gespeichert, aber es
-        wird nichts an echte Social-Media-Konten gesendet.
-      </div>
-      <div className="grid gap-5 xl:grid-cols-2">
-        {workspace.marketingPosts.map((post) => (
-          <Panel key={post.id} className="p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="border-[rgba(79,52,81,0.1)]">
-                    {post.channel}
-                  </Badge>
-                  <Badge className="bg-[#f4eaf6] text-[#85528d] hover:bg-[#f4eaf6]">Demo</Badge>
-                </div>
-                <h2 className="mt-4 text-lg font-semibold text-[#2c2230]">{post.title}</h2>
-              </div>
-              <NativeSelect
-                value={post.status}
-                aria-label="Beitragsstatus"
-                onChange={(event) =>
-                  void mutate(
-                    { type: "update_post_status", id: post.id, status: event.target.value },
-                    event.target.value === "published"
-                      ? "Im Demo-Modus veröffentlicht."
-                      : "Beitragsstatus aktualisiert.",
-                  )
-                }
-                className="h-8 min-w-28 border-[rgba(79,52,81,0.1)] text-xs"
-              >
-                <NativeSelectOption value="draft">Entwurf</NativeSelectOption>
-                <NativeSelectOption value="scheduled">Geplant</NativeSelectOption>
-                <NativeSelectOption value="published">Veröffentlicht</NativeSelectOption>
-              </NativeSelect>
-            </div>
-            <p className="mt-4 whitespace-pre-line text-sm leading-6 text-slate-600">{post.copy}</p>
-            <p className="mt-5 text-xs text-slate-400">
-              {post.scheduledFor
-                ? new Date(post.scheduledFor).toLocaleString("de-DE", {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  })
-                : "Noch nicht geplant"}
+    <div className="space-y-6">
+      <section className="relative overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#241727_0%,#5d315f_55%,#a86f9d_100%)] p-6 text-white shadow-[0_24px_70px_rgba(77,40,78,0.24)] sm:p-8">
+        <div className="absolute -right-16 -top-20 size-72 rounded-full bg-white/10 blur-3xl" />
+        <div className="absolute -bottom-24 left-1/3 size-64 rounded-full bg-[#f3b8d8]/15 blur-3xl" />
+        <div className="relative grid gap-8 xl:grid-cols-[1.35fr_0.65fr] xl:items-end">
+          <div>
+            <Badge className="border border-white/15 bg-white/10 text-white hover:bg-white/10">
+              <WandSparkles className="mr-1.5 size-3.5" /> Dein persönliches Content Studio
+            </Badge>
+            <h2 className="mt-5 max-w-3xl text-3xl font-semibold leading-tight tracking-[-0.04em] sm:text-4xl">
+              Aus einer Idee wird dein nächster Social-Post.
+            </h2>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-white/75">
+              Zeige deine Arbeit, fülle freie Termine und bleibe bei deinen Kunden sichtbar – auch ohne Erfahrung mit Social Media.
             </p>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Button onClick={onCreate} className="h-12 rounded-full bg-white px-6 font-semibold text-[#4f2d51] shadow-lg hover:bg-white/90">
+                <Sparkles className="size-4" /> Post erstellen lassen
+              </Button>
+              <span className="flex items-center gap-2 px-2 text-sm text-white/65">
+                <Check className="size-4" /> In wenigen Schritten zum Entwurf
+              </span>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2 rounded-2xl border border-white/10 bg-white/[0.08] p-3 backdrop-blur-xl xl:grid-cols-1">
+            <div className="rounded-xl bg-white/[0.08] p-3"><p className="text-xs text-white/55">Inhalte</p><p className="mt-1 text-xl font-semibold">{workspace.marketingPosts.length}</p></div>
+            <div className="rounded-xl bg-white/[0.08] p-3"><p className="text-xs text-white/55">Geplant</p><p className="mt-1 text-xl font-semibold">{planned}</p></div>
+            <div className="rounded-xl bg-white/[0.08] p-3"><p className="text-xs text-white/55">Veröffentlicht</p><p className="mt-1 text-xl font-semibold">{published}</p></div>
+          </div>
+        </div>
+      </section>
+
+      <Panel className="p-6 sm:p-7">
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+          <div>
+            <p className="text-sm font-semibold text-[#9a659f]">So einfach funktioniert es</p>
+            <h2 className="mt-1 text-xl font-semibold tracking-[-0.02em] text-[#2c2230]">Du gibst die Richtung vor. Die KI macht den Rest.</h2>
+          </div>
+          <p className="max-w-md text-sm leading-6 text-slate-500">Kein leeres Textfeld, kein Rätselraten: Wir führen dich verständlich durch jeden Schritt.</p>
+        </div>
+        <div className="mt-6 grid gap-3 md:grid-cols-3">
+          {[
+            { number: "01", icon: Target, title: "Sag, was du erreichen willst", copy: "Zum Beispiel freie Termine füllen, eine Leistung zeigen oder eine Aktion bewerben." },
+            { number: "02", icon: Share2, title: "Wähle Kanal und Zeitpunkt", copy: "Entscheide, ob dein Inhalt für Instagram, eine Story oder Facebook gedacht ist." },
+            { number: "03", icon: WandSparkles, title: "Erhalte deinen fertigen Entwurf", copy: "Die KI formuliert den Beitrag. Du prüfst ihn und planst die Veröffentlichung." },
+          ].map((step) => (
+            <div key={step.number} className="group rounded-2xl border border-[rgba(79,52,81,0.08)] bg-[#fcfafc] p-5 transition hover:-translate-y-0.5 hover:border-[#9a659f]/25 hover:shadow-[0_14px_35px_rgba(79,52,81,0.08)]">
+              <div className="flex items-center justify-between">
+                <span className="grid size-10 place-items-center rounded-xl bg-[#f1e4f1] text-[#85528d]"><step.icon className="size-5" /></span>
+                <span className="text-sm font-semibold text-[#cbb6cc]">{step.number}</span>
+              </div>
+              <h3 className="mt-5 font-semibold text-[#2c2230]">{step.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-500">{step.copy}</p>
+            </div>
+          ))}
+        </div>
+      </Panel>
+
+      <div className="flex items-end justify-between gap-4">
+        <div><p className="text-sm font-semibold text-[#9a659f]">Deine Inhalte</p><h2 className="mt-1 text-xl font-semibold text-[#2c2230]">Content-Bibliothek</h2></div>
+        <Button variant="outline" onClick={onCreate} className="rounded-full border-[rgba(79,52,81,0.12)] bg-white"><Plus className="size-4" /> Neuer Post</Button>
+      </div>
+      <div className="grid gap-5 lg:grid-cols-2 2xl:grid-cols-3">
+        {workspace.marketingPosts.map((post) => (
+          <Panel key={post.id} className="overflow-hidden p-0">
+            <div className="relative aspect-[1.3/1] overflow-hidden bg-[linear-gradient(145deg,#2d1a30,#72426f_58%,#d598b9)] p-5 text-white">
+              <div className="absolute -right-10 -top-12 size-40 rounded-full border border-white/15 bg-white/[0.07]" />
+              <div className="absolute -bottom-16 -left-8 size-44 rounded-full bg-[#f5c2dc]/15 blur-xl" />
+              <div className="relative flex h-full flex-col justify-between">
+                <div className="flex items-center justify-between"><span className="rounded-full bg-white/12 px-3 py-1.5 text-xs font-medium backdrop-blur">{post.channel}</span><Sparkles className="size-4 text-white/60" /></div>
+                <div><p className="text-xs font-medium uppercase tracking-[0.18em] text-white/55">{workspace.tenant.name}</p><h3 className="mt-2 max-w-xs text-2xl font-semibold leading-tight tracking-[-0.03em]">{post.title}</h3></div>
+              </div>
+            </div>
+            <div className="p-5">
+              <div className="flex items-center justify-between gap-3">
+                <Badge className={post.status === "published" ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-50" : post.status === "scheduled" ? "bg-blue-50 text-blue-700 hover:bg-blue-50" : "bg-[#f4eaf6] text-[#85528d] hover:bg-[#f4eaf6]"}>{statusLabel[post.status]}</Badge>
+                <span className="text-xs text-slate-400">KI-Demo</span>
+              </div>
+              <p className="mt-4 line-clamp-3 whitespace-pre-line text-sm leading-6 text-slate-600">{post.copy}</p>
+              <div className="mt-5 flex items-center justify-between gap-3 border-t border-[rgba(79,52,81,0.07)] pt-4">
+                <p className="text-xs text-slate-400">
+                  {post.scheduledFor ? new Date(post.scheduledFor).toLocaleString("de-DE", { dateStyle: "medium", timeStyle: "short" }) : "Noch nicht geplant"}
+                </p>
+                <NativeSelect
+                  value={post.status}
+                  aria-label="Beitragsstatus"
+                  onChange={(event) => void mutate({ type: "update_post_status", id: post.id, status: event.target.value }, event.target.value === "published" ? "Im Demo-Modus veröffentlicht." : "Beitragsstatus aktualisiert.")}
+                  className="h-8 min-w-28 border-[rgba(79,52,81,0.1)] text-xs"
+                >
+                  <NativeSelectOption value="draft">Entwurf</NativeSelectOption>
+                  <NativeSelectOption value="scheduled">Geplant</NativeSelectOption>
+                  <NativeSelectOption value="published">Veröffentlicht</NativeSelectOption>
+                </NativeSelect>
+              </div>
+            </div>
           </Panel>
         ))}
       </div>
+      <SimulationNotice>Du testest den vollständigen Ablauf. Es wird nichts an echte Social-Media-Konten gesendet.</SimulationNotice>
     </div>
   );
 }
@@ -2017,7 +2078,7 @@ function ActionDialog({
     staff: ["Teammitglied hinzufügen", "Rolle und Fachgebiet können später weiter verfeinert werden."],
     service: ["Neue Leistung", "Preis, Dauer und Onlinebuchung werden sofort berücksichtigt."],
     location: ["Standort hinzufügen", "Jeder Standort erhält sein eigenes Zeitraster."],
-    marketing: ["KI-Inhalt simulieren", "Der Entwurf wird gespeichert, aber nicht extern veröffentlicht."],
+    marketing: ["Deinen Social-Post erstellen", "Vier einfache Angaben – danach erhältst du sofort deinen persönlichen Entwurf."],
     "growth-campaign": ["Neue Wachstumskampagne", "Zielgruppe, Kanal und Status bleiben in deinem Demo-Betrieb gespeichert."],
   };
 
@@ -2108,22 +2169,27 @@ function ActionDialog({
             )}
             {type === "marketing" && (
               <>
-                <Field label="Titel" name="title" placeholder="z. B. Freie Termine am Freitag" required />
-                <SelectField label="Kanal" name="channel">
-                  <option value="Instagram">Instagram Feed</option>
-                  <option value="Story">Instagram Story</option>
-                  <option value="Facebook">Facebook</option>
-                </SelectField>
-                <label className="block">
-                  <span className="text-sm font-medium text-[#2c2230]">Ziel und Inhalt</span>
-                  <Textarea
-                    name="goal"
-                    className="mt-2 min-h-28 rounded-xl border-[rgba(79,52,81,0.1)]"
-                    placeholder="Was soll der Beitrag erreichen?"
-                    required
-                  />
-                </label>
-                <Field label="Geplant für" name="scheduledFor" type="datetime-local" />
+                <div className="grid grid-cols-3 gap-2 pb-1">
+                  {["Idee", "Kanal", "Entwurf"].map((label, index) => <div key={label} className="rounded-xl bg-[#f8f2f7] px-2 py-3 text-center"><span className="block text-xs font-semibold text-[#9a659f]">0{index + 1}</span><span className="mt-1 block text-xs text-[#58475a]">{label}</span></div>)}
+                </div>
+                <div className="rounded-2xl border border-[#9a659f]/12 bg-[#fcf8fb] p-4">
+                  <p className="text-sm font-semibold text-[#2c2230]">Was möchtest du heute zeigen?</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">Schreibe es so, wie du es einem Mitarbeiter erzählen würdest. Die KI übernimmt die Formulierung.</p>
+                  <Field label="Thema des Posts" name="title" placeholder="z. B. Zwei freie Termine am Freitag" required />
+                  <label className="mt-4 block">
+                    <span className="text-sm font-medium text-[#2c2230]">Was sollen deine Kunden wissen oder tun?</span>
+                    <Textarea name="goal" className="mt-2 min-h-28 rounded-xl border-[rgba(79,52,81,0.1)] bg-white" placeholder="z. B. Wir haben am Freitag zwei Termine für Balayage frei. Kundinnen sollen uns direkt eine Nachricht senden und einen Termin reservieren." required />
+                  </label>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <SelectField label="Wo möchtest du posten?" name="channel">
+                    <option value="Instagram">Instagram Feed</option>
+                    <option value="Story">Instagram Story</option>
+                    <option value="Facebook">Facebook</option>
+                  </SelectField>
+                  <Field label="Wann? (optional)" name="scheduledFor" type="datetime-local" />
+                </div>
+                <div className="flex items-start gap-3 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800"><Check className="mt-0.5 size-4 shrink-0" /><span>Du kannst den erstellten Text anschließend prüfen und den Status selbst festlegen.</span></div>
               </>
             )}
             {type === "growth-campaign" && (
@@ -2149,7 +2215,7 @@ function ActionDialog({
               {saving
                 ? "Wird gespeichert …"
                 : type === "marketing"
-                  ? "Demo-Inhalt generieren"
+                  ? "Meinen Post erstellen lassen"
                   : type === "growth-campaign"
                     ? "Kampagne anlegen"
                   : type === "widget-appointment"
